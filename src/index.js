@@ -1,8 +1,12 @@
 const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
+app.setup({
+  enableHttpStream: true,
+});
+
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-const CONTAINER_NAME = 'dummyfiles'; // replace with your container name
+const CONTAINER_NAME = 'dummyfiles';
 
 app.http('demofunctionapp', {
   methods: ['GET'],
@@ -21,14 +25,14 @@ app.http('demofunctionapp', {
       return {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(blobs)
+        body: JSON.stringify(blobs),
       };
     } catch (err) {
       context.log(`Error listing blobs: ${err.message}`);
       return {
         status: 500,
-        body: `Error retrieving blobs: ${err.message}`
+        body: `Error retrieving blobs: ${err.message}`,
       };
     }
-  }
+  },
 });
