@@ -2,6 +2,12 @@ const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 // Set up global config
+const cors = require('cors');
+app.use(cors({
+    origin: 'https://demonewlook-drftaegrg5gyeyff.canadacentral-01.azurewebsites.net', // Replace with your frontend URL
+    methods: 'GET, POST', // Allowed methods
+    credentials: true, // Allow cookies if needed
+}));
 app.setup({
     enableHttpStream: true,
 });
