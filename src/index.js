@@ -43,6 +43,7 @@ app.http('listBlobs', {
     }
 });
 
+
 app.http('uploadBlob', {
     methods: ['POST'],
     authLevel: 'anonymous',
@@ -51,26 +52,33 @@ app.http('uploadBlob', {
         const containerName = 'dummyfiles';
 
         try {
-            const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
-            const containerClient = blobServiceClient.getContainerClient(containerName);
+        const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+        const containerClient = blobServiceClient.getContainerClient(containerName);
 
-            const formData = await request.formData();
-            const file = formData.get('file');
-            const fileName = file.name;
+        const formData = await request.formData();
+        const file = formData.get('file');
+        const fileName = file.name;
 
-            const blockBlobClient = containerClient.getBlockBlobClient(fileName);
-            await blockBlobClient.uploadData(await file.arrayBuffer());
+        const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
-            return {
-                status: 200,
-                jsonBody: { message: 'Upload successful', url: blockBlobClient.url }
-            };
+        // Set headers to allow browser viewing
+        await blockBlobClient.uploadData(await file.arrayBuffer(), {
+            blobHTTPHeaders: {
+            blobContentType: file.type,
+            blobContentDisposition: "inline",
+            }
+        });
+
+        return {
+            status: 200,
+            jsonBody: { message: 'Upload successful', url: blockBlobClient.url }
+        };
         } catch (error) {
-            context.log('Upload error:', error.message);
-            return {
-                status: 500,
-                body: 'Upload failed'
-            };
+        context.log('Upload error:', error.message);
+        return {
+            status: 500,
+            body: 'Upload failed'
+        };
         }
     }
 });
