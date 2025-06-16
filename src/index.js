@@ -59,13 +59,8 @@ app.http('uploadBlob', {
 
       const blockBlobClient = containerClient.getBlockBlobClient(fileName);
 
-      // Allow browser view
-      await blockBlobClient.uploadData(await file.arrayBuffer(), {
-        blobHTTPHeaders: {
-          blobContentType: file.type,
-          blobContentDisposition: "inline",
-        }
-      });
+      
+      await blockBlobClient.uploadData(await file.arrayBuffer());
 
       return {
         status: 200,
@@ -74,61 +69,6 @@ app.http('uploadBlob', {
     } catch (error) {
       context.log('Upload error:', error.message);
       return { status: 500, body: 'Upload failed' };
-    }
-  }
-});
-
-// DOWNLOAD BLOB
-app.http('downloadBlob', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  handler: async (request, context) => {
-    const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-    const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
-    const containerName = 'dummyfiles';
-
-    const blobName = request.query.get('file');
-    if (!blobName) {
-      return { status: 400, body: 'Missing file name' };
-    }
-
-    try {
-      const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
-      const blobServiceClient = new BlobServiceClient(
-        `https://${accountName}.blob.core.windows.net`,
-        sharedKeyCredential
-      );
-
-      const containerClient = blobServiceClient.getContainerClient(containerName);
-      const blobClient = containerClient.getBlobClient(blobName);
-
-      const exists = await blobClient.exists();
-      if (!exists) {
-        context.log(`Blob not found: ${blobName}`);
-        return { status: 404, body: 'Blob not found' };
-      }
-
-      const sas = generateBlobSASQueryParameters({
-        containerName,
-        blobName,
-        expiresOn: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
-        permissions: BlobSASPermissions.parse('r'),
-        protocol: SASProtocol.Https,
-        contentDisposition: `attachment; filename="${blobName}"`,
-      }, sharedKeyCredential).toString();
-
-      const sasUrl = `${blobClient.url}?${sas}`;
-      context.log(`Redirecting to SAS URL: ${sasUrl}`);
-
-      return {
-        status: 302,
-        headers: {
-          Location: sasUrl
-        }
-      };
-    } catch (error) {
-      context.log("Download error:", error);
-      return { status: 500, body: 'Error generating download link' };
     }
   }
 });
