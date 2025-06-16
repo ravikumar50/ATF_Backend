@@ -93,24 +93,33 @@ app.http('downloadBlob', {
     }
 
     try {
-      context.log(`Generating SAS for blob: ${blobName}`);
       const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
       const blobServiceClient = new BlobServiceClient(
         `https://${accountName}.blob.core.windows.net`,
         sharedKeyCredential
       );
 
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const blobClient = containerClient.getBlobClient(blobName);
+
+      const exists = await blobClient.exists();
+      if (!exists) {
+        context.log(`Blob not found: ${blobName}`);
+        return { status: 404, body: 'Blob not found' };
+      }
+
       const sas = generateBlobSASQueryParameters({
         containerName,
         blobName,
-        expiresOn: new Date(Date.now() + 60 * 1000), // 1 minute
+        expiresOn: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
         permissions: BlobSASPermissions.parse('r'),
         protocol: SASProtocol.Https,
         contentDisposition: `attachment; filename="${blobName}"`,
       }, sharedKeyCredential).toString();
 
-      const sasUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sas}`;
-      context.log(`Redirecting to: ${sasUrl}`);
+      const sasUrl = `${blobClient.url}?${sas}`;
+      context.log(`Redirecting to SAS URL: ${sasUrl}`);
+
       return {
         status: 302,
         headers: {
@@ -118,7 +127,7 @@ app.http('downloadBlob', {
         }
       };
     } catch (error) {
-      context.log("Download error:", error.message);
+      context.log("Download error:", error);
       return { status: 500, body: 'Error generating download link' };
     }
   }
