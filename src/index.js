@@ -83,8 +83,8 @@ app.http('downloadBlob', {
   methods: ['GET'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
-    const AZURE_STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
-    const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
+    const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+    const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
     const containerName = 'dummyfiles';
 
     const blobName = request.query.get('file');
@@ -92,35 +92,32 @@ app.http('downloadBlob', {
       return { status: 400, body: 'Missing file name' };
     }
 
-    const sharedKeyCredential = new StorageSharedKeyCredential(
-      AZURE_STORAGE_ACCOUNT_NAME,
-      AZURE_STORAGE_ACCOUNT_KEY
-    );
+    try {
+      const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+      const blobServiceClient = new BlobServiceClient(
+        `https://${accountName}.blob.core.windows.net`,
+        sharedKeyCredential
+      );
 
-    const blobServiceClient = new BlobServiceClient(
-      `https://${AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net`,
-      sharedKeyCredential
-    );
+      const sas = generateBlobSASQueryParameters({
+        containerName,
+        blobName,
+        expiresOn: new Date(Date.now() + 60 * 1000), // 1 min
+        permissions: BlobSASPermissions.parse('r'),
+        protocol: SASProtocol.Https,
+        contentDisposition: `attachment; filename="${blobName}"`,
+      }, sharedKeyCredential).toString();
 
-    const containerClient = blobServiceClient.getContainerClient(containerName);
-    const blobClient = containerClient.getBlobClient(blobName);
-
-    const expiresOn = new Date(Date.now() + 60 * 1000); // 1 minute
-    const sas = generateBlobSASQueryParameters({
-      containerName,
-      blobName,
-      expiresOn,
-      permissions: BlobSASPermissions.parse('r'),
-      protocol: SASProtocol.Https,
-      contentDisposition: `attachment; filename="${blobName}"`,
-    }, sharedKeyCredential).toString();
-
-    const sasUrl = `${blobClient.url}?${sas}`;
-    return {
-      status: 302,
-      headers: {
-        Location: sasUrl,
-      }
-    };
+      const sasUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sas}`;
+      return {
+        status: 302,
+        headers: {
+          Location: sasUrl
+        }
+      };
+    } catch (error) {
+      context.log("Error generating SAS URL:", error.message);
+      return { status: 500, body: 'Error generating download link' };
+    }
   }
 });
