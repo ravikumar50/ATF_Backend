@@ -11,8 +11,8 @@ app.http('individualCall', {
   authLevel: 'anonymous',
   handler: async (request, context) => {
     // Retrieve filename from route parameters
-    const ulr = new URL(request.url);
-    const filename = ulr.searchParams.get('filename');
+
+     const filename = request.body?.filename;
     // const filename = request.params.filename;
     if (!filename) {
       return { status: 400, body: 'Missing route parameter `filename`' };
