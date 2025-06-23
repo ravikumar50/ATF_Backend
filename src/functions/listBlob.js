@@ -6,6 +6,8 @@ app.http('listBlob', {
     handler: async (request, context) => {
         const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
         const containerName = 'dummyfiles'; // Replace with your actual container name
+        console.log(AZURE_STORAGE_CONNECTION_STRING);
+        
 
         try {
             const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
