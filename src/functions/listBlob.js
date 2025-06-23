@@ -1,4 +1,5 @@
 const { app } = require('@azure/functions');
+require('dotenv').config()
 const { BlobServiceClient } = require('@azure/storage-blob');
 app.http('listBlob', {
     methods: ['GET'],
@@ -6,7 +7,7 @@ app.http('listBlob', {
     handler: async (request, context) => {
         const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
         const containerName = 'dummyfiles'; // Replace with your actual container name
-        console.log(AZURE_STORAGE_CONNECTION_STRING);
+        
         
 
         try {
