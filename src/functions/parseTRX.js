@@ -39,7 +39,7 @@ app.http('parseTrx', {
         };
       }
       const currDate = new Date();
-      const expiryDate = new Date(currDate.getTime() + 24 * 60 * 60 * 1000 * 90); // 90 days expiry
+      const expiryDate = new Date(currDate.getTime() + 60 * 60 * 1000 * 6); // 90 days expiry
       console.log('Expiry Date:', expiryDate.toISOString());
       const parsedCounts = {
         total: parseInt(counters['@_total'] || '0', 10),
