@@ -11,10 +11,10 @@ app.storageBlob('uploadCaculation', {
 
     try {
       // Step 1: Call parseTrx API
-      const res = await fetch(`https://functionapptry.azurewebsites.net/api/parseTrx?filename=${fileName}`);
+      const res = await fetch(`http://localhost:7071/api/parseTrx?filename=${fileName}`);
       const parsedData = await res.json();
 
-      context.log('Parsed TRX Data:', parsedData);
+      
 
       // Step 2: Connect to Blob Storage
       const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
@@ -37,27 +37,31 @@ app.storageBlob('uploadCaculation', {
       if (!existingData["Overall"]) {
         existingData["Overall"] = {};
         for (const key in parsedData) {
+          if(key == "expiryDate") continue; // Skip expiryDate
           existingData["Overall"][key] = 0;
         }
       }
 
       // Step 5: Update "Overall" by summing values
       for (const key in parsedData) {
-        if (typeof parsedData[key] === "number") {
+        if(key == "expiryDate") continue; // Skip expiryDate
+       
           existingData["Overall"][key] = (existingData["Overall"][key] || 0) + parsedData[key];
-        }
+        
       }
 
       // Step 6: Save the file's data under its fileName
+      // context.log('Parsed TRX Data:', parsedData);
       existingData[fileName] = parsedData;
-
+      // console.log(existingData);
       // Step 7: Upload updated content
       const updatedContent = JSON.stringify(existingData, null, 2);
+      // console.log('Updated Content:', updatedContent);
       await blobClient.upload(updatedContent, Buffer.byteLength(updatedContent), {
         blobHTTPHeaders: { blobContentType: 'application/json' }
       });
 
-      context.log(`Updated metadata/database.json with results for ${fileName}`);
+      // context.log(`Updated metadata/database.json with results for ${fileName}`);
 
     } catch (error) {
       context.log('Error:', error.message);
