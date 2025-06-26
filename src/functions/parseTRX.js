@@ -38,7 +38,9 @@ app.http('parseTrx', {
           body: 'Counters not found in TRX file',
         };
       }
-
+      const currDate = new Date();
+      const expiryDate = new Date(currDate.getTime() + 24 * 60 * 60 * 1000 * 90); // 90 days expiry
+      console.log('Expiry Date:', expiryDate.toISOString());
       const parsedCounts = {
         total: parseInt(counters['@_total'] || '0', 10),
         executed: parseInt(counters['@_executed'] || '0', 10),
@@ -56,6 +58,7 @@ app.http('parseTrx', {
         completed: parseInt(counters['@_completed'] || '0', 10),
         inProgress: parseInt(counters['@_inProgress'] || '0', 10),
         pending: parseInt(counters['@_pending'] || '0', 10),
+        expiryDate: expiryDate.toISOString(),
       };
 
       return {
