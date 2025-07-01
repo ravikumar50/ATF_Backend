@@ -9,8 +9,12 @@ app.http('newProject', {
         try {
             //  ------------ creating a new container ------------
             const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
-            const containerName = request.body.name || "new-container"; 
-            const description = request.body.description || "No description provided";
+
+            const formData = await request.formData();
+            // const file = formData.get('file');
+
+            const containerName = formData.get('name') || "new-container"; 
+            const description = formData.get('description') || "No description provided";
             // const containerName = `container-${Date.now()}`;
             // const description = request.query.description || "No description provided";
             const containerClient = blobServiceClient.getContainerClient(containerName);
