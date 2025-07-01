@@ -1,6 +1,3 @@
-/**
- * Azure Function to fetch database.json from Blob Storage, extract stats for a given file, and return them.
- */
 const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
@@ -8,61 +5,53 @@ app.http('individualCall', {
   methods: ['POST'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
-    // Read fileName from JSON body
-    const fileName = request.params.fileName;
-    console.log(request)
-    context.log(`Received fileName from body: ${fileName}`);
+    const formData = await request.formData();
+    const fileName = formData.get('fileName'); 
+    const containerName = formData.get('containerName'); 
 
-    // Validate input
-    if (!fileName) {
+    if (!fileName || !containerName) {
       return {
         status: 400,
-        body: 'Missing required field: fileName in request body',
+        body: 'Missing required field: fileName or containerName',
       };
     }
 
-    // Ensure storage connection string is set
     const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
     if (!connStr) {
       return {
         status: 500,
-        body: 'Server configuration error: missing AZURE_STORAGE_CONNECTION_STRING',
+        body: 'Missing AZURE_STORAGE_CONNECTION_STRING',
       };
     }
 
-    // Initialize blob client for database.json
-    const containerClient = BlobServiceClient
-      .fromConnectionString(connStr)
-      .getContainerClient('metadata');
-    const dbBlobClient = containerClient.getBlobClient('database.json');
-
-    // Download and parse database.json
-    let dbJson;
     try {
+      const blobServiceClient = BlobServiceClient.fromConnectionString(connStr);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
+      const dbBlobClient = containerClient.getBlobClient('metadata/database.json');
+
       const buffer = await dbBlobClient.downloadToBuffer();
-      dbJson = JSON.parse(buffer.toString('utf-8'));
+      const dbJson = JSON.parse(buffer.toString('utf-8'));
+
+      const stats = dbJson[fileName];
+      if (!stats) {
+        return {
+          status: 404,
+          body: `No stats found for file: ${fileName}`,
+        };
+      }
+
+      context.log(`Found stats for file: ${fileName}`, stats);
+      return {
+        status: 200,
+        jsonBody: stats,
+      };
+
     } catch (err) {
-      context.log.error('Error loading database.json:', err.message);
+      context.log.error('Error accessing or parsing database.json:', err.message);
       return {
         status: 500,
-        body: 'Failed to load or parse database.json',
+        body: 'Error accessing or parsing database.json',
       };
     }
-
-    // Look up stats for the requested fileName
-    const stats = dbJson[fileName];
-    if (!stats) {
-      return {
-        status: 404,
-        body: `No stats found for file: ${fileName}`,
-      };
-    }
-
-    // Return the stats as JSON
-    context.log(`Found stats for file: ${fileName}`, stats);
-    return {
-      status: 200,
-      jsonBody: stats,
-    };
   },
 });
