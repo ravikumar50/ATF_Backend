@@ -6,8 +6,8 @@ app.http('listBlob', {
     authLevel: 'anonymous', // Change to 'function' if you want security
     handler: async (request, context) => {
         const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-        const containerName = 'dummyfiles'; // Replace with your actual container name
-        
+        const formData = await request.formData();
+        const containerName = formData.get('containerName'); 
         
 
         try {
@@ -15,13 +15,18 @@ app.http('listBlob', {
             const containerClient = blobServiceClient.getContainerClient(containerName);
 
             let blobItems = [];
-            for await (const blob of containerClient.listBlobsFlat()) {
+            const prefix = "dummyfiles/";
+            for await (const blob of containerClient.listBlobsFlat({ prefix })) {
+                // Skip folder placeholder (if exists)
+                if (blob.name === prefix) continue;
+
                 const blobUrl = `${containerClient.url}/${blob.name}`;
                 blobItems.push({
-                    name: blob.name,
+                    name: blob.name.replace(prefix, ""), // remove folder prefix from name
                     url: blobUrl,
                 });
             }
+
 
             return {
                 status: 200,

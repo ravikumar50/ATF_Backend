@@ -24,6 +24,7 @@ app.timer('selfDestruct', {
         // console.log('Database JSON loaded successfully:', dbJson);
         // 2025-09-24T12:44:55.277Z
         for (const [fileName, stats] of Object.entries(dbJson)) {
+            if(fileName=="Overall") continue;
             if (stats.expiryDate) {
                 const expiryDate = new Date(stats.expiryDate);
                 const currentDate = new Date();
@@ -31,13 +32,31 @@ app.timer('selfDestruct', {
                     context.log(`Deleting expired file: ${fileName}`);
                     // Delete the file from dummyfiles container
                     const dummyContainer = BlobServiceClient.fromConnectionString(connStr).getContainerClient('dummyfiles');
-                    const res = await fetch(
-                        `https://functionapptry.azurewebsites.net/api/deleteBlob?filename=${fileName}`,
-                        { method: "DELETE" }
-                      );
+                    try {
+                        const res = await fetch(
+                            `https://functionapptry.azurewebsites.net/api/deleteBlob?filename=${fileName}`,
+                            { method: "DELETE" }
+                        );
+                        if (!res.ok) {
+                            context.log.error(`Failed to delete ${fileName} via API. Status: ${res.status}`);
+                        }
+                    } catch (err) {
+                        context.log.error(`Error calling delete API for ${fileName}:`, err.message);
+                    }
+
 
                     // Remove from database.json
                     delete dbJson[fileName];
+
+                    // Save updated database.json after deletions
+                    try {
+                        const updatedContent = Buffer.from(JSON.stringify(dbJson, null, 2), 'utf-8');
+                        await dbBlobClient.uploadData(updatedContent, { overwrite: true });
+                        context.log('Updated database.json uploaded successfully.');
+                    } catch (uploadErr) {
+                        context.log.error('Failed to upload updated database.json:', uploadErr.message);
+                    }
+
                 }
             }
         }
