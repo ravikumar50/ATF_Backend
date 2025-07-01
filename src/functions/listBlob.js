@@ -8,8 +8,7 @@ app.http('listBlob', {
         const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
         const formData = await request.formData();
         const containerName = formData.get('containerName'); // Replace with your actual container name
-        
-        
+                
 
         try {
             const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
@@ -23,6 +22,7 @@ app.http('listBlob', {
                     name: cleanedName
                 });
             }
+
 
             return {
                 status: 200,
