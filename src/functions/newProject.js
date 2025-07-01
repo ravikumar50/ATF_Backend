@@ -37,7 +37,7 @@ app.http('newProject', {
             const database = {
                 About: {
                     name: containerName,
-                    description: "This is a new project container created for testing purposes.",
+                    description: description,
                     createdAt: new Date().toISOString(),
                 },
                 Overall: {
