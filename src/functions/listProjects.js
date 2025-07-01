@@ -32,17 +32,25 @@ app.http('listProjects', {
             // Filter project details
             // console.log(database.data);
             // console.log("Project names to filter:", projectNames);
+            console.log("Database data:", database.data);
+            if(projectNames[0] == 'Admin'){
+                context.res = { status: 200, headers: {"Content-Type": "application/json"}, jsonBody: database.data };
+            }
             const projectDetails = database.data.filter(project => projectNames.includes(project.name));
             // console.log("Filtered project details:", database);
             if (projectDetails.length === 0) {
-                return { status: 404, body: "No project details found for this email" };
+                context.res = { status: 404, headers: {"Content-Type": "application/json"}, jsonBody: "No project details found for this email" };
             }
             // console.log("Filtered project details:", projectDetails);
-            return { status: 200,body: projectDetails };
+            context.res = {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+            body: projectDetails
+            };
 
         } catch (error) {
             console.error("Error in listProjects handler:", error);
-            return { status: 500, body: "An unexpected error occurred" };
+            return { status: 500, jsonBody: "An unexpected error occurred" };
         }
     }
 });
