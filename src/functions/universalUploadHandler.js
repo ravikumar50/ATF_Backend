@@ -19,7 +19,7 @@ app.eventGrid('universalUploadHandler', {
       const fileName = blobName.split('/').pop();
       console.log(`Processing blob: ${fileName} from container: ${containerName}`);
       // Call your parseTrx API
-      const res = await fetch(`https://functdionapptry.azurewebsites.net/api/parseTrx?filename=${fileName}&containerName=${containerName}`);
+      const res = await fetch(`https://functionapptry.azurewebsites.net/api/parseTrx?filename=${fileName}&containerName=${containerName}`);
     //   const res = await fetch(`http://localhost:7071/api/parseTrx?filename=${fileName}&containerName=${containerName}`);
       const parsedData = await res.json();
       console.log('Parsed Data:', parsedData);
