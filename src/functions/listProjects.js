@@ -45,7 +45,7 @@ app.http('listProjects', {
         };
       }
 
-      console.log("Project details found:", projectDetails);
+      
 
       
       
