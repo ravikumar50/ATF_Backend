@@ -7,7 +7,7 @@ app.http('parseTrx', {
   authLevel: 'anonymous',
   handler: async (request, context) => {
     const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    const containerName = 'dummyfiles';
+    const containerName = url.searchParams.get('dummyfiles');
 
     const url = new URL(request.url);
     const fileName = url.searchParams.get('filename');
