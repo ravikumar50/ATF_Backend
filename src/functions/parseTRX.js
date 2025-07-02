@@ -7,40 +7,56 @@ app.http('parseTrx', {
   authLevel: 'anonymous',
   handler: async (request, context) => {
     const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    const containerName = url.searchParams.get('dummyfiles');
 
     const url = new URL(request.url);
+    const containerName = url.searchParams.get('containerName');
     const fileName = url.searchParams.get('filename');
 
-    if (!fileName) {
+    context.log('Received request to parse TRX file:', fileName);
+    context.log('Container Name:', containerName);
+
+    if (!containerName || !fileName) {
       return {
         status: 400,
-        body: 'Missing filename parameter',
+        body: 'Missing containerName or filename parameter',
       };
     }
 
     try {
       const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
       const containerClient = blobServiceClient.getContainerClient(containerName);
-      const blobClient = containerClient.getBlobClient(fileName);
 
-      const downloadBlockBlobResponse = await blobClient.download();
-      const downloaded = await streamToString(downloadBlockBlobResponse.readableStreamBody);
+      const blobPath = `dummyfiles/${fileName}`;
+      const blobClient = containerClient.getBlobClient(blobPath);
+
+      context.log(`Checking blob at path: ${blobPath} in container: ${containerName}`);
+
+      const exists = await blobClient.exists();
+      if (!exists) {
+        context.log(`Blob does NOT exist: ${blobPath}`);
+        return {
+          status: 404,
+          body: `Blob not found at path dummyfiles/${fileName} in container ${containerName}`,
+        };
+      }
+
+      const downloadResponse = await blobClient.download();
+      const xmlContent = await streamToString(downloadResponse.readableStreamBody);
 
       const parser = new XMLParser({ ignoreAttributes: false });
-      const jsonObj = parser.parse(downloaded);
+      const jsonObj = parser.parse(xmlContent);
 
       const counters = jsonObj?.TestRun?.ResultSummary?.Counters;
-
       if (!counters || typeof counters !== 'object') {
         return {
           status: 404,
           body: 'Counters not found in TRX file',
         };
       }
+
       const currDate = new Date();
-      const expiryDate = new Date(currDate.getTime() + 60 * 60 * 1000 * 6); // 90 days expiry
-      console.log('Expiry Date:', expiryDate.toISOString());
+      const expiryDate = new Date(currDate.getTime() + 6 * 60 * 60 * 1000); // 6 hours from now
+
       const parsedCounts = {
         total: parseInt(counters['@_total'] || '0', 10),
         executed: parseInt(counters['@_executed'] || '0', 10),
@@ -73,7 +89,7 @@ app.http('parseTrx', {
         body: 'Failed to parse TRX file',
       };
     }
-  },
+  }
 });
 
 async function streamToString(readableStream) {
