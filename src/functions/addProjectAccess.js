@@ -2,7 +2,7 @@ const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 app.http('addProjectAccess', {
-  methods: ['POST'], // Use POST for form data
+  methods: ['POST'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
     const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -30,13 +30,33 @@ app.http('addProjectAccess', {
 
       const blobServiceClient = BlobServiceClient.fromConnectionString(connStr);
       const containerClient = blobServiceClient.getContainerClient(containerName);
-      const blobClient = containerClient.getBlockBlobClient(blobName); // <-- FIXED HERE
+      const blobClient = containerClient.getBlockBlobClient(blobName);
 
-      // Download existing mapping.json content
+      // Download and parse mapping.json
       const buffer = await blobClient.downloadToBuffer();
       const content = JSON.parse(buffer.toString('utf-8'));
 
-      // Add project if it doesn't exist
+      // Special case: if projectName is "User", only add email with empty array if not exists
+      if (projectName === "User") {
+        if (!content[email]) {
+          content[email] = [];
+
+          const updatedContent = JSON.stringify(content, null, 2);
+          await blobClient.uploadData(Buffer.from(updatedContent), { overwrite: true });
+
+          return {
+            status: 200,
+            body: `Email '${email}' added as 'User' with no projects.`,
+          };
+        } else {
+          return {
+            status: 200,
+            body: `Email '${email}' already exists. No update made.`,
+          };
+        }
+      }
+
+      // Standard project add logic
       if (!content[email]) {
         content[email] = [];
       }
@@ -44,11 +64,8 @@ app.http('addProjectAccess', {
       if (!content[email].includes(projectName)) {
         content[email].push(projectName);
 
-        // Upload updated content back to Blob
         const updatedContent = JSON.stringify(content, null, 2);
-        await blobClient.uploadData(Buffer.from(updatedContent), {
-          overwrite: true,
-        });
+        await blobClient.uploadData(Buffer.from(updatedContent), { overwrite: true });
 
         return {
           status: 200,

@@ -11,7 +11,7 @@ app.storageBlob('uploadCaculation', {
 
     try {
       // Step 1: Call parseTrx API
-      // const res = await fetch(`http://localhost:7071/api/parseTrx?filename=${fileName}`);
+      
       const res = await fetch(`https://functionapptry.azurewebsites.net/api/parseTrx?filename=${fileName}`);
       const parsedData = await res.json();
 
