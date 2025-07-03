@@ -4,7 +4,7 @@ const FormData = require('form-data'); // Install this: npm install form-data
 
 app.http('addUser', {
   methods: ['POST'],
-  authLevel: 'function',
+  authLevel: 'anonymous',
   handler: async (request, context) => {
     const formData = await request.formData();
     const email = formData.get("email");
