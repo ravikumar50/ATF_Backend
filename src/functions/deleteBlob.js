@@ -37,6 +37,7 @@ app.http('deleteBlob', {
       await fileBlobClient.delete();
       context.log(`Deleted blob: ${filePath}`);
 
+
       // Step 2: Read metadata/database.json from same container
       const dbPath = `metadata/database.json`;
       const dbBlobClient = containerClient.getBlockBlobClient(dbPath);

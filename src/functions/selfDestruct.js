@@ -2,63 +2,54 @@ const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 app.timer('selfDestruct', {
-    schedule: '0 30 9 * * *',
-    handler:async (myTimer, context) => {
-        // context.log('Timer function processed request.');
+    // schedule: '0 0 6 * * *',
+    schedule: '* * * * * *', // Every 30 minutes
+    handler: async (myTimer, context) => {
         const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
-        const containerClient = BlobServiceClient.fromConnectionString(connStr).getContainerClient('metadata');
-        const dbBlobClient = containerClient.getBlobClient('database.json');
+        const blobServiceClient = BlobServiceClient.fromConnectionString(connStr);
 
-        let dbJson;
-        try {
-            const buffer = await dbBlobClient.downloadToBuffer();
-            dbJson = JSON.parse(buffer.toString('utf-8'));
-        } 
-        catch (err) {
-            context.log.error('Error loading database.json:', err.message);
-            return {
-                status: 500,
-                body: 'Failed to load or parse database.json',
-            };
-        }
-        // console.log('Database JSON loaded successfully:', dbJson);
-        // 2025-09-24T12:44:55.277Z
-        for (const [fileName, stats] of Object.entries(dbJson)) {
-            if(fileName=="Overall") continue;
-            if (stats.expiryDate) {
-                const expiryDate = new Date(stats.expiryDate);
-                const currentDate = new Date();
-                if(expiryDate < currentDate) {
-                    context.log(`Deleting expired file: ${fileName}`);
-                    // Delete the file from dummyfiles container
-                    const dummyContainer = BlobServiceClient.fromConnectionString(connStr).getContainerClient('dummyfiles');
-                    try {
-                        const res = await fetch(
-                            `https://functionapptry.azurewebsites.net/api/deleteBlob?filename=${fileName}`,
-                            { method: "DELETE" }
-                        );
-                        if (!res.ok) {
-                            context.log.error(`Failed to delete ${fileName} via API. Status: ${res.status}`);
-                        }
-                    } catch (err) {
-                        context.log.error(`Error calling delete API for ${fileName}:`, err.message);
+        // List all containers in the storage account
+        for await (const container of blobServiceClient.listContainers()) {
+            const containerName = container.name;
+            const containerClient = blobServiceClient.getContainerClient(containerName);
+            const dbBlobClient = containerClient.getBlockBlobClient('metadata/database.json');
+
+            let dbJson;
+            try {
+                const buffer = await dbBlobClient.downloadToBuffer();
+                dbJson = JSON.parse(buffer.toString('utf-8'));
+            } catch (err) {
+                console.log(`No database.json found in container: ${containerName}, skipping.`);
+                continue; // Skip containers without database.json
+            }
+
+            for (const [fileName, stats] of Object.entries(dbJson)) {
+                if (fileName === "Overall" || fileName === "About") continue;
+
+                if (stats.expiryDate) {
+                    const expiryDate = new Date(stats.expiryDate);
+                    const currentDate = new Date();
+                    if (expiryDate < currentDate) {
+                        await fetch(`http://localhost:7071/api/deleteBlob?containerName=${containerName}&filename=${fileName}`, {
+                            method: 'DELETE',
+                            
+                        });
+
+                        // // Remove from database.json
+                        // delete dbJson[fileName];
+
+                        // // Save updated database.json after deletions
+                        // try {
+                        //     const updatedContent = Buffer.from(JSON.stringify(dbJson, null, 2), 'utf-8');
+                        //     await dbBlobClient.uploadData(updatedContent, { overwrite: true });
+                        //     console.log(`Updated database.json uploaded successfully in ${containerName}.`);
+                        // } catch (uploadErr) {
+                        //     console.log(`Failed to upload updated database.json in ${containerName}:`, uploadErr.message);
+                        // }
                     }
-
-
-                    // Remove from database.json
-                    delete dbJson[fileName];
-
-                    // Save updated database.json after deletions
-                    try {
-                        const updatedContent = Buffer.from(JSON.stringify(dbJson, null, 2), 'utf-8');
-                        await dbBlobClient.uploadData(updatedContent, { overwrite: true });
-                        context.log('Updated database.json uploaded successfully.');
-                    } catch (uploadErr) {
-                        context.log.error('Failed to upload updated database.json:', uploadErr.message);
-                    }
-
                 }
             }
+
         }
     }
 });
