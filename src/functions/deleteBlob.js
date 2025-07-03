@@ -8,9 +8,8 @@ app.http('deleteBlob', {
     console.log("Hello");
     
     const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    const containerName = 'dummyfiles';
-
     const url = new URL(request.url);
+    const containerName = url.searchParams.get('containerName');
     const fileName = url.searchParams.get('filename');
     context.log('Received DELETE request for file:', fileName);
 
@@ -27,7 +26,7 @@ app.http('deleteBlob', {
 
       // Step 1: Delete blob from dummyfiles
       const dummyContainer = blobServiceClient.getContainerClient(containerName);
-      const fileBlobClient = dummyContainer.getBlockBlobClient(fileName);
+      const fileBlobClient = dummyContainer.getBlockBlobClient(`dummyfiles/${fileName}`);
       const fileExists = await fileBlobClient.exists();
       context.log(`File exists in dummyfiles: ${fileExists}`);
 
@@ -42,8 +41,8 @@ app.http('deleteBlob', {
       context.log(`Deleted ${fileName} from dummyfiles container.`);
 
       // Step 2: Read metadata/database.json
-      const metadataContainer = blobServiceClient.getContainerClient('metadata');
-      const dbBlobClient = metadataContainer.getBlockBlobClient('database.json');
+      const metadataContainer = blobServiceClient.getContainerClient(containerName);
+      const dbBlobClient = metadataContainer.getBlockBlobClient(`metadata/database.json`);
 
       let existingData = {};
 

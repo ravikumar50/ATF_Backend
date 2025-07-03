@@ -55,7 +55,7 @@ app.http('parseTrx', {
       }
 
       const currDate = new Date();
-      const expiryDate = new Date(currDate.getTime() + 6 * 60 * 60 * 1000); // 6 hours from now
+      const expiryDate = new Date(currDate.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days from now
 
       const parsedCounts = {
         total: parseInt(counters['@_total'] || '0', 10),
