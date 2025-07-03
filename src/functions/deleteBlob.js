@@ -5,31 +5,28 @@ app.http('deleteBlob', {
   methods: ['DELETE'],
   authLevel: 'anonymous',
   handler: async (request, context) => {
-    console.log("Hello");
-    
     const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-    const url = new URL(request.url);
-    const containerName = url.searchParams.get('containerName');
-    const fileName = url.searchParams.get('filename');
-    context.log('Received DELETE request for file:', fileName);
-
-    if (!fileName) {
-      context.log('Missing filename parameter');
+    const formData = await request.formData();
+    const fileName = formData.get('fileName'); 
+    const containerName = formData.get('containerName');
+    if (!fileName || !containerName) {
       return {
         status: 400,
-        body: 'Missing filename parameter',
+        body: 'Missing filename or containerName',
       };
     }
 
+    context.log(`Deleting file '${fileName}' from container '${containerName}'`);
+
     try {
       const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
+      const containerClient = blobServiceClient.getContainerClient(containerName);
 
-      // Step 1: Delete blob from dummyfiles
-      const dummyContainer = blobServiceClient.getContainerClient(containerName);
-      const fileBlobClient = dummyContainer.getBlockBlobClient(`dummyfiles/${fileName}`);
+      // Step 1: Delete the file from dummyfiles/
+      const filePath = `dummyfiles/${fileName}`;
+      const fileBlobClient = containerClient.getBlockBlobClient(filePath);
+
       const fileExists = await fileBlobClient.exists();
-      context.log(`File exists in dummyfiles: ${fileExists}`);
-
       if (!fileExists) {
         return {
           status: 404,
@@ -38,11 +35,12 @@ app.http('deleteBlob', {
       }
 
       await fileBlobClient.delete();
-      context.log(`Deleted ${fileName} from dummyfiles container.`);
+      context.log(`Deleted blob: ${filePath}`);
 
-      // Step 2: Read metadata/database.json
-      const metadataContainer = blobServiceClient.getContainerClient(containerName);
-      const dbBlobClient = metadataContainer.getBlockBlobClient(`metadata/database.json`);
+
+      // Step 2: Read metadata/database.json from same container
+      const dbPath = `metadata/database.json`;
+      const dbBlobClient = containerClient.getBlockBlobClient(dbPath);
 
       let existingData = {};
 
@@ -50,35 +48,27 @@ app.http('deleteBlob', {
         const downloadResponse = await dbBlobClient.download();
         const content = await streamToString(downloadResponse.readableStreamBody);
         existingData = JSON.parse(content);
-        context.log('Successfully parsed database.json');
+        context.log('Loaded metadata/database.json');
       } catch (err) {
-        context.log('Failed to read or parse database.json:', err.message);
+        context.log('Failed to read metadata/database.json:', err.message);
         return {
           status: 500,
-          body: 'Could not load metadata file',
+          body: 'Could not read metadata',
         };
       }
 
+      // Step 3: Update Overall & remove file entry
       const fileData = existingData[fileName];
       const overallData = existingData['Overall'];
 
-      context.log(`Entry in database.json for file ${fileName}:`, fileData);
-      context.log('Overall before subtraction:', overallData);
-
-      // Step 3: Subtract from "Overall" and delete file entry
       if (fileData && overallData) {
         for (const key in fileData) {
           if (typeof fileData[key] === 'number') {
-            overallData[key] = (overallData[key] || 0) - fileData[key];
-            if (overallData[key] < 0) overallData[key] = 0;
+            overallData[key] = Math.max(0, (overallData[key] || 0) - fileData[key]);
           }
         }
-        context.log('Overall after subtraction:', overallData);
-
         delete existingData[fileName];
-        context.log(`Deleted ${fileName} entry from database.json`);
-      } else {
-        context.log(`No matching data found in database.json for ${fileName}`);
+        context.log(`Updated 'Overall' and removed '${fileName}' from metadata`);
       }
 
       // Step 4: Upload updated database.json
@@ -88,17 +78,18 @@ app.http('deleteBlob', {
         blobHTTPHeaders: { blobContentType: 'application/json' }
       });
 
-      context.log('Uploaded updated database.json to metadata container.');
+      context.log('Updated metadata/database.json uploaded');
 
       return {
         status: 200,
         jsonBody: { message: 'File and metadata deleted successfully' },
       };
+
     } catch (error) {
       context.log('Delete error:', error.message);
       return {
         status: 500,
-        body: 'Failed to delete blob or update metadata',
+        body: 'Internal Server Error',
       };
     }
   }
