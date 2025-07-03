@@ -85,7 +85,7 @@ app.http('addUser', {
       };
     } catch (error) {
       context.log("Error adding user:", error.message);
-      return { status: 500, body: "Failed to add user" };
+      return { status: 500, body: error.message};
     }
   }
 });
