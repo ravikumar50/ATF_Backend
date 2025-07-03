@@ -3,7 +3,8 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 app.timer('selfDestruct', {
     // schedule: '0 0 6 * * *',
-    schedule: '* * * * * *', // Every 30 minutes
+    schedule: '0 */30 * * * *', // Every 30 minutes
+
     handler: async (myTimer, context) => {
         const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
         const blobServiceClient = BlobServiceClient.fromConnectionString(connStr);
@@ -30,9 +31,14 @@ app.timer('selfDestruct', {
                     const expiryDate = new Date(stats.expiryDate);
                     const currentDate = new Date();
                     if (expiryDate < currentDate) {
-                        await fetch(`http://localhost:7071/api/deleteBlob?containerName=${containerName}&filename=${fileName}`, {
+                        const formData = new FormData();
+                        formData.append("containerName", containerName);
+                        formData.append("filename", fileName);
+                        
+                        const url = "https://functionapptry.azurewebsites.net/api/deleteBlob"; // Deployed
+                        await fetch(url, {
                             method: 'DELETE',
-                            
+                            body: formData
                         });
 
                         // // Remove from database.json
