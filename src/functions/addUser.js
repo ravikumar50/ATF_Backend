@@ -45,7 +45,7 @@ app.http('addUser', {
         },
         body: JSON.stringify({
           invitedUserEmailAddress: email,
-          inviteRedirectUrl: "https://your-frontend-url.com",
+          inviteRedirectUrl: "https://demonewlook-drftaegrg5gyeyff.canadacentral-01.azurewebsites.net/",
           sendInvitationMessage: true,
           invitedUserMessageInfo: {
             customizedMessageBody: `You've been invited as a ${role} to access the system.`
