@@ -2,8 +2,8 @@ const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
 
 app.timer('selfDestruct', {
-    // schedule: '0 0 6 * * *',
-    schedule: '0 */3 * * * *', // Every 30 minutes
+    schedule: '0 */3 * * * *',
+
 
     handler: async (myTimer, context) => {
         const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -20,7 +20,7 @@ app.timer('selfDestruct', {
                 const buffer = await dbBlobClient.downloadToBuffer();
                 dbJson = JSON.parse(buffer.toString('utf-8'));
             } catch (err) {
-                console.log(`No database.json found in container: ${containerName}, skipping.`);
+                // console.log(`No database.json found in container: ${containerName}, skipping.`);
                 continue; // Skip containers without database.json
             }
 
@@ -33,8 +33,9 @@ app.timer('selfDestruct', {
                     if (expiryDate < currentDate) {
                         const formData = new FormData();
                         formData.append("containerName", containerName);
-                        formData.append("filename", fileName);
-                        
+                        formData.append("fileName", fileName);
+                        console.log(containerName, fileName, expiryDate, currentDate);
+                        console.log(formData)
                         const url = "https://functionapptry.azurewebsites.net/api/deleteBlob"; // Deployed
                         await fetch(url, {
                             method: 'DELETE',
