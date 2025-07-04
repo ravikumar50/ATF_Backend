@@ -3,7 +3,7 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 
 app.timer('selfDestruct', {
     // schedule: '0 0 6 * * *',
-    schedule: '0 */30 * * * *', // Every 30 minutes
+    schedule: '0 */3 * * * *', // Every 30 minutes
 
     handler: async (myTimer, context) => {
         const connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
