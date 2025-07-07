@@ -17,10 +17,12 @@ app.http('listBlob', {
             let blobItems = [];
             for await (const blob of containerClient.listBlobsFlat({ prefix: 'dummyfiles/' })) {
                 const cleanedName = blob.name.replace('dummyfiles/', '');
-                if (!cleanedName) continue;
-                blobItems.push({
-                    name: cleanedName
-                });
+
+                if (cleanedName && cleanedName.endsWith('.trx')) {
+                    blobItems.push({
+                        name: cleanedName
+                    });
+                }
             }
 
 
