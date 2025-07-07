@@ -20,7 +20,8 @@ app.http('listBlob', {
 
                 if (cleanedName && cleanedName.endsWith('.trx')) {
                     blobItems.push({
-                        name: cleanedName
+                        name: cleanedName,
+                        url: `https://${containerClient.accountName}.blob.core.windows.net/${containerName}/${blob.name}`,
                     });
                 }
             }
