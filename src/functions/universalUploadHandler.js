@@ -18,7 +18,14 @@ app.eventGrid('universalUploadHandler', {
 
       const fileName = blobName.split('/').pop(); // e.g., Sample62.trx
       console.log(`Processing blob: ${fileName} from container: ${containerName}`);
-
+      const checker = fileName.endsWith('.trx') || fileName.endsWith('.xml');
+      console.log(`File type check for ${fileName}: ${checker}`);
+      if(!checker) {
+        console.log(`Ignored file: ${fileName} as it is not a .trx or .xml file`);
+        return{
+          status: 200,
+        }
+      }
       // Call the parseTrx API to extract parsed test results
       const res = await fetch(`https://functionapptry.azurewebsites.net/api/parseTrx?filename=${fileName}&containerName=${containerName}`);
       const parsedData = await res.json();

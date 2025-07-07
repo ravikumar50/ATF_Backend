@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parsed Counts</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 60%;
+      max-width: 600px;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    thead {
+      background-color: #4da3ca;
+      color: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      text-align: left;
+      padding: 10px;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <!-- <h2>Parsed Counts</h2> -->
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>total</td><td>100</td></tr>
+      <tr><td>passed</td><td>80</td></tr>
+      <tr><td>failed</td><td>10</td></tr>
+      <tr><td>skipped</td><td>5</td></tr>
+      <tr><td>error</td><td>5</td></tr>
+      <tr><td>timeout</td><td>0 </td></tr>
+      <tr><td>aborted</td><td>0</td></tr>
+      <tr><td>notRunnable</td><td>0</td></tr>
+      <tr><td>disconnected</td><td>0</td></tr>
+      <tr><td>warning</td><td>0</td></tr>
+      <tr><td>completed</td><td>100</td></tr>
+      <tr><td>pending</td><td>0</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>
