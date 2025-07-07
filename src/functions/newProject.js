@@ -19,7 +19,10 @@ app.http('newProject', {
             // const description = request.query.description || "No description provided";
             const containerClient = blobServiceClient.getContainerClient(containerName);
 
-            await containerClient.create();
+            
+
+            await containerClient.create({ access: "blob" });
+
             context.res = {
                 status: 200,
                 body: { containerName },
