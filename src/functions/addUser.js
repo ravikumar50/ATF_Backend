@@ -9,9 +9,10 @@ app.http('addUser', {
     const formData = await request.formData();
     const email = formData.get("email");
     const role = formData.get("role");
+    const name = formData.get("name");
 
-    if (!email || !role) {
-      return { status: 400, body: "Missing email or role" };
+    if (!email || !role || !name) {
+      return { status: 400, body: "Missing email, role or name" };
     }
 
     const tenantId = process.env.TENANT_ID;
@@ -63,6 +64,7 @@ app.http('addUser', {
       const projectAccessForm = new FormData();
       projectAccessForm.append("email", email);
       projectAccessForm.append("projectName", role);
+      projectAccessForm.append("name", name);
 
 
       const url = "https://functionapptry.azurewebsites.net/api/addProjectAccess"

@@ -20,6 +20,7 @@ app.http('addProjectAccess', {
       const formData = await request.formData();
       const email = formData.get('email');
       const projectName = formData.get('projectName');
+      const name = formData.get('name'); // don't default to ''
 
       if (!email || !projectName) {
         return {
@@ -36,49 +37,54 @@ app.http('addProjectAccess', {
       const buffer = await blobClient.downloadToBuffer();
       const content = JSON.parse(buffer.toString('utf-8'));
 
-      // Special case: if projectName is "User", only add email with empty array if not exists
+      // Special case: "User" project
       if (projectName === "User") {
         if (!content[email]) {
           content[email] = [];
-
-          const updatedContent = JSON.stringify(content, null, 2);
-          await blobClient.uploadData(Buffer.from(updatedContent), { overwrite: true });
-
-          return {
-            status: 200,
-            body: `Email '${email}' added as 'User' with no projects.`,
-          };
-        } else {
-          return {
-            status: 200,
-            body: `Email '${email}' already exists. No update made.`,
-          };
+          if (name) content[email].push(name);
         }
-      }
-
-      // Standard project add logic
-      if (!content[email]) {
-        content[email] = [];
-      }
-
-      if (!content[email].includes(projectName)) {
-        content[email].push(projectName);
 
         const updatedContent = JSON.stringify(content, null, 2);
         await blobClient.uploadData(Buffer.from(updatedContent), { overwrite: true });
 
         return {
           status: 200,
-          body: `Project '${projectName}' added for ${email}.`,
-        };
-      } else {
-        return {
-          status: 200,
-          body: `Project '${projectName}' already exists for ${email}.`,
+          body: `Email '${email}' added as 'User'.`,
         };
       }
+
+      // Standard logic
+      if (!content[email]) {
+        content[email] = [];
+      }
+
+      let preservedName = null;
+
+      if (!name) {
+        // Name is not sent — remove last item (assumed name)
+        preservedName = content[email].pop();
+      }
+
+      // Add project if not already present
+      if (!content[email].includes(projectName)) {
+        content[email].push(projectName);
+      }
+
+      // Add name (from form or preserved) at end
+      const finalName = name || preservedName;
+      if (finalName && !content[email].includes(finalName)) {
+        content[email].push(finalName);
+      }
+
+      const updatedContent = JSON.stringify(content, null, 2);
+      await blobClient.uploadData(Buffer.from(updatedContent), { overwrite: true });
+
+      return {
+        status: 200,
+        body: `Project '${projectName}' added for ${email}${finalName ? ` with name '${finalName}'` : ''}.`,
+      };
     } catch (err) {
-      context.log('Failed to update mapping.json:', err.message);
+      context.log('Failed to update mapping.json:', err);
       return {
         status: 500,
         body: 'Error updating mapping.json',
